@@ -1,0 +1,56 @@
+---
+title: "MLG: Multilayer graph clustering of scRNA-seq data across multiple experimental conditions"
+output: github_document
+number-sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/",
+  out.width = "100%"
+)
+```
+
+## What is MLG?
+
+MLG is an integrative clustering approach for single cell RNA-seq data across multiple experimental conditions. MLG takes multiple low-dimensional embedding data of gene expression matrix as input, e.g. low dimension embeddings from dimension reduction methods like PCA, [cNMF](https://github.com/dylkot/cNMF), or from data integration methods like  [Seurat](https://satijalab.org/seurat/), [Liger](https://macoskolab.github.io/liger/). It constructs a multi-layer shared nearest neighbor (SNN) graph from these low-dimensional embeddings and performs Louvain graph partitioning algorithm. 
+
+```{r pressure, echo=FALSE, fig.cap="Figure: MLG workflow", out.width = '100%', fig.align='center'}
+knitr::include_graphics("man/figures/mlg_workflow.png")
+```
+
+## Installation tips
+
+The vignettes of mlg package depend on R package [Liger (Linked Inference of Genomic Experimental Relationships)](https://macoskolab.github.io/liger/) and [Seurat](https://satijalab.org/seurat/install.html). 
+After installing dependencies, you can install mlg with the following commend:
+```{r, eval=F}
+devtools::install_github('shanlu01/mlg')
+```
+
+## What can you do with mlg?
+
+1. Perform MLG clustering 
+```{r, eval=F}
+mlg_cluster(
+  factor.list,
+  cluster.resolution
+  )
+```
+
+
+2. Visualize the MLG graph through force directed layout.
+```{r, eval=F}
+mlg_visualization(
+  factor.list,
+  label
+)
+```
+
+ Argument **factor.list** is a list variable containing low dimensional embedding data, for example let **factor.list = list(PCA_factors, cNMF_factors)**. **cluster.resolution** is the resolution in modularity maximization. A larger resolution number will lead to more clusters. Argument **label** in **mlg_visulization** is the color labeling to be imposed on the figure. For example, to visualize clustering result, we can specify **label = clusters**.
+
+
+## Contact
+
+The package is developed in Keles Research Group at University of Wisconsin - Madison. Please contact Shan Lu (slu92@wisc.edu) or open an issue in the github repository for any question and suggestion.

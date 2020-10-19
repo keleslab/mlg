@@ -21,7 +21,7 @@ suppressPackageStartupMessages({
   library(Seurat)
   library(liger)
   library(mlg)
-  library(pdfCluster)
+  library(mclust)
 })
 data("kowalczyk_1", package = "mlg")
 theme_set(theme_classic())
@@ -59,7 +59,7 @@ plot_grid(ggplot(tSNE_coord_PCA, aes(tSNE_1, tSNE_2, color = cell_info$cell_type
             ggplot(tSNE_coord_PCA, aes(tSNE_1, tSNE_2, color = seurat.obj$seurat_clusters)) +
             labs(color = "cluster") + theme(legend.position = "bottom") + geom_point())
 # The Adjusted Rand Index(ARI) of the Louvain-PCA clustering
-pdfCluster::adj.rand.index(seurat.obj$seurat_clusters, cell_info$cell_type_label)
+mclust::adjustedRandIndex(seurat.obj$seurat_clusters, cell_info$cell_type_label)
 
 ```
 
@@ -87,22 +87,30 @@ plot_grid(ggplot(tSNE_coord_Seurat, aes(tSNE_1, tSNE_2, color = cell_info$cell_t
           ggplot(tSNE_coord_Seurat, aes(tSNE_1, tSNE_2, color = kowalczyk.integrated$seurat_clusters)) +
           labs(color = "cluster") + theme(legend.position = "bottom") + geom_point())
 # The Adjusted Rand Index(ARI) of the Seurat clustering
-pdfCluster::adj.rand.index(kowalczyk.integrated$seurat_clusters, cell_info$cell_type_label)
+mclust::adjustedRandIndex(kowalczyk.integrated$seurat_clusters, cell_info$cell_type_label)
 
 ```
 
 ## Perform Liger integration, tSNE and Louvain clustering with Liger factors.
 
-```{r, fig.hold='hold', fig.width=8, fig.height=4, message=F, warning=F}
+```{r, fig.hold='hold', fig.width=8, fig.height=4}
 
 liger.obj <- createLiger(list(young = condition.list[[1]]@assays$RNA@counts, 
                            old = condition.list[[2]]@assays$RNA@counts)) 
 liger.obj <- liger::normalize(liger.obj)
 liger.obj <- selectGenes(liger.obj, var.thresh = .7281) # keep 3000 genes, check in length(liger.obj@var.genes) 
 liger.obj <- scaleNotCenter(liger.obj)
-liger.obj <- optimizeALS(liger.obj, k = num_component) 
-# Changing resolution in quantileAlignSNF does not change number of cluster in this example dataset.
-liger.obj <- quantileAlignSNF(liger.obj)
+```
+
+```{r, fig.hold='hold', fig.width=8, fig.height=4,  message=F, warning=F, results='hide'}
+liger.obj <- optimizeALS(liger.obj, k = num_component)
+```
+
+```{r, fig.hold='hold', fig.width=8, fig.height=4, message=F, warning=F}
+
+liger.obj <- quantile_norm(liger.obj)
+liger.obj <- louvainCluster(liger.obj, resolution = 0.2)
+
 liger.obj <- runTSNE(liger.obj)
 
 ## prepare liger factors for MLG clustering
@@ -122,7 +130,7 @@ plot_grid(ggplot(tSNE_coord_Liger, aes(tSNE_1, tSNE_2, color = cell_info$cell_ty
           ggplot(tSNE_coord_Liger, aes(tSNE_1, tSNE_2, color = liger.obj@clusters)) +
           labs(color = "cluster") + theme(legend.position = "bottom") + geom_point())
 # The Adjusted Rand Index(ARI) of the Liger clustering
-pdfCluster::adj.rand.index(liger.obj@clusters, cell_info$cell_type_label)
+mclust::adjustedRandIndex(liger.obj@clusters, cell_info$cell_type_label)
 
 ```
 
@@ -141,7 +149,7 @@ plot_grid(ggplot(tSNE_coord_cNMF, aes(tSNE_1, tSNE_2, color = cell_info$cell_typ
           ggplot(tSNE_coord_cNMF, aes(tSNE_1, tSNE_2, color = cnmf_cluster)) +
           labs(color = "cluster") + theme(legend.position = "bottom") + geom_point())
 # The Adjusted Rand Index(ARI) of the Louvain-cNMF clustering
-pdfCluster::adj.rand.index(cnmf_cluster, cell_info$cell_type_label)
+mclust::adjustedRandIndex(cnmf_cluster, cell_info$cell_type_label)
 
 ```
 
@@ -158,7 +166,7 @@ factor_list <- list(PCA = seurat.obj@reductions$pca@cell.embeddings[,1:num_compo
 MLG <- mlg_cluster(factor.list = factor_list, cluster.resolution = .5)
 
 # The Adjusted Rand Index(ARI) of the MLG clustering
-pdfCluster::adj.rand.index(MLG, cell_info$cell_type_label)
+mclust::adjustedRandIndex(MLG, cell_info$cell_type_label)
 
 # Visualization of the overlapping (which characterizes dependences) between different SNN layers.
 p <- prop.overlap.edges(factor_list)
@@ -176,11 +184,11 @@ plot_grid(mlg_visualization(factor.list = factor_list, label=cell_info$cell_type
 graph_signal_noise_ratio(factor_list, knn.param = 20, prune.param = 1/5, cell_label = cell_info$cell_type_label)
 
 # Compare clustering ARI of the 5 methods.
-clustering_acc <- c(pdfCluster::adj.rand.index(seurat.obj$seurat_clusters, cell_info$cell_type_label),
-  pdfCluster::adj.rand.index(cnmf_cluster, cell_info$cell_type_label),
-  pdfCluster::adj.rand.index(kowalczyk.integrated$seurat_clusters, cell_info$cell_type_label),
-  pdfCluster::adj.rand.index(liger.obj@clusters, cell_info$cell_type_label),
-  pdfCluster::adj.rand.index(MLG, cell_info$cell_type_label))
+clustering_acc <- c(mclust::adjustedRandIndex(seurat.obj$seurat_clusters, cell_info$cell_type_label),
+  mclust::adjustedRandIndex(cnmf_cluster, cell_info$cell_type_label),
+  mclust::adjustedRandIndex(kowalczyk.integrated$seurat_clusters, cell_info$cell_type_label),
+  mclust::adjustedRandIndex(liger.obj@clusters, cell_info$cell_type_label),
+  mclust::adjustedRandIndex(MLG, cell_info$cell_type_label))
 names(clustering_acc) <- c("PCA", "cNMF", "Seurat", "Liger", "MLG")
 print(clustering_acc)
 
